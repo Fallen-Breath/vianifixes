@@ -1,10 +1,10 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "me.fallenbreath.template_mod.mixins",
+  "package": "me.fallenbreath.vianifixes.mixins",
   "compatibilityLevel": "{{COMPATIBILITY_LEVEL}}",
   "mixins": [
-    "MinecraftServerMixin"
+    "fabricnetworkingapi.ServerConfigurationNetworkAddonMixin"
   ],
   "client": [
   ],
