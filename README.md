@@ -6,4 +6,4 @@ Hacked mods:
 
 - `fabric-networking-api-v1` (server side)
 
-See comments in the [mixin](src/main/java/me/fallenbreath/vianifixes/mixins) for more information
+See comments in the [mixins package](src/main/java/me/fallenbreath/vianifixes/mixins) for more information
