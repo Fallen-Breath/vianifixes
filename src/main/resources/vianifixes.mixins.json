@@ -2,6 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "me.fallenbreath.vianifixes.mixins",
+  "plugin": "me.fallenbreath.vianifixes.VianiFixesMixinPlugin",
   "compatibilityLevel": "{{COMPATIBILITY_LEVEL}}",
   "mixins": [
     "fabricnetworkingapi.ServerConfigurationNetworkAddonMixin"
