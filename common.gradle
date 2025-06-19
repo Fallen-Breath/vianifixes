@@ -6,16 +6,12 @@ apply plugin: 'me.fallenbreath.yamlang'
 
 int mcVersion = project.mcVersion
 
-preprocess {
-	tabIndentation = true
-}
-
 repositories {
 	maven {
-		url 'https://jitpack.io'
+		url = 'https://jitpack.io'
 	}
 	maven {
-		url 'https://maven.fallenbreath.me/releases'
+		url = 'https://maven.fallenbreath.me/releases'
 	}
 }
 
@@ -59,23 +55,26 @@ if (mcVersion >= 12005) {
 JavaVersion MIXIN_COMPATIBILITY_LEVEL = JAVA_COMPATIBILITY
 
 loom {
+	def commonVmArgs = ['-Dmixin.debug.export=true', '-Dmixin.debug.countInjections=true']
 	runConfigs.configureEach {
 		// to make sure it generates all "Minecraft Client (:subproject_name)" applications
 		ideConfigGenerated = true
 		runDir '../../run'
-		vmArgs '-Dmixin.debug.export=true'
+		vmArgs commonVmArgs
 	}
 	runs {
+        def auditVmArgs = [*commonVmArgs, '-DmixinAuditor.audit=true']
 		serverMixinAudit {
 			server()
-			vmArgs '-DmixinAuditor.audit=true'
+			vmArgs auditVmArgs
+			ideConfigGenerated false
+		}
+		clientMixinAudit {
+			client()
+			vmArgs auditVmArgs
 			ideConfigGenerated false
 		}
 	}
-}
-
-remapJar {
-	remapperIsolation = true
 }
 
 String modVersionSuffix = ''
@@ -206,9 +205,9 @@ testClasses.dependsOn licenseFormatTest
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
-			artifactId base.archivesName.get()
 			from components.java
-			version = fullArtifactVersion
+            artifactId = base.archivesName.get()
+            version = fullArtifactVersion
 		}
 	}
 
