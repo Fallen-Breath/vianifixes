@@ -5,7 +5,8 @@
   "plugin": "me.fallenbreath.vianifixes.VianiFixesMixinPlugin",
   "compatibilityLevel": "{{COMPATIBILITY_LEVEL}}",
   "mixins": [
-    "fabricnetworkingapi.ServerConfigurationNetworkAddonMixin"
+    "fabricnetworkingapi.ServerConfigurationNetworkAddonMixin",
+    "polymercompat.PolymerHandshakeHandlerMixin"
   ],
   "client": [
   ],
