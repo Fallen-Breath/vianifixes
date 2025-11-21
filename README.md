@@ -5,5 +5,6 @@ Some hack fixes for mods to ensure they work with viaversion-ed clients
 Hacked mods:
 
 - `fabric-networking-api-v1` (server side)
+- `polymer-networking` (server side)
 
 See comments in the [mixins package](src/main/java/me/fallenbreath/vianifixes/mixins) for more information

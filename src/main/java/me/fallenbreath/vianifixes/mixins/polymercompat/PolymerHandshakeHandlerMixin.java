@@ -22,6 +22,7 @@ package me.fallenbreath.vianifixes.mixins.polymercompat;
 
 import me.fallenbreath.conditionalmixin.api.annotation.Condition;
 import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
+import me.fallenbreath.vianifixes.VianiFixesConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -38,31 +39,22 @@ public abstract class PolymerHandshakeHandlerMixin
 	{
 		try {
 			Object server = this.getClass().getMethod("getServer").invoke(this);
-			java.lang.reflect.Method execute = server.getClass().getMethod("execute", Runnable.class);
-			
-			execute.invoke(server, (Runnable) () -> {
+			server.getClass().getMethod("execute", Runnable.class).invoke(server, (Runnable) () -> {
 				try {
-					Thread.sleep(2000);
-					execute.invoke(server, (Runnable) () -> {
-						try {
-							java.lang.reflect.Field canContinueField = this.getClass().getSuperclass().getDeclaredField("canContinue");
-							canContinueField.setAccessible(true);
-							if (!canContinueField.getBoolean(this)) {
-								return;
-							}
-							
-							java.lang.reflect.Field contextField = this.getClass().getSuperclass().getDeclaredField("context");
-							contextField.setAccessible(true);
-							Object context = contextField.get(this);
-							Object consumer = context.getClass().getMethod("continueRunning").invoke(context);
-							consumer.getClass().getMethod("accept", Object.class).invoke(consumer, context);
-						} catch (Exception e) {
-						}
-					});
-				} catch (Exception e) {
-				}
+					Thread.sleep(VianiFixesConfig.polymerHandshakeTimeout);
+					
+					Class<?> superClass = this.getClass().getSuperclass();
+					java.lang.reflect.Field canContinue = superClass.getDeclaredField("canContinue");
+					canContinue.setAccessible(true);
+					if (!canContinue.getBoolean(this)) return;
+					
+					java.lang.reflect.Field contextField = superClass.getDeclaredField("context");
+					contextField.setAccessible(true);
+					Object context = contextField.get(this);
+					Object consumer = context.getClass().getMethod("continueRunning").invoke(context);
+					consumer.getClass().getMethod("accept", Object.class).invoke(consumer, context);
+				} catch (Exception e) {}
 			});
-		} catch (Exception e) {
-		}
+		} catch (Exception e) {}
 	}
 }

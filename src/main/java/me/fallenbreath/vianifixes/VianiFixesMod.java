@@ -51,5 +51,7 @@ public class VianiFixesMod implements ModInitializer
 		ModMetadata metadata = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow(RuntimeException::new).getMetadata();
 		MOD_NAME = metadata.getName();
 		MOD_VERSION = metadata.getVersion().getFriendlyString();
+		
+		VianiFixesConfig.load(new java.io.File(FabricLoader.getInstance().getConfigDir().toFile(), "vianifixes.properties"));
 	}
 }
