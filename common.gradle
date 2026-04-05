@@ -1,49 +1,73 @@
+final int mcVersion = project.mcVersion
+final boolean unobfuscated = mcVersion >= 26_00_00
+
 apply plugin: 'maven-publish'
 apply plugin: 'com.github.hierynomus.license'
-apply plugin: 'fabric-loom'
+apply plugin: unobfuscated ? 'net.fabricmc.fabric-loom' : 'net.fabricmc.fabric-loom-remap'
 apply plugin: 'com.replaymod.preprocess'
 apply plugin: 'me.fallenbreath.yamlang'
 
-int mcVersion = project.mcVersion
-
 repositories {
 	maven {
+		url = 'https://maven.parchmentmc.org'
+		content { includeGroup('org.parchmentmc.data') }
+	}
+	maven {
 		url = 'https://jitpack.io'
+		content { includeGroupAndSubgroups('com.github') }
 	}
 	maven {
 		url = 'https://maven.fallenbreath.me/releases'
+		content { includeGroup('me.fallenbreath') }
 	}
-}
-
-// https://github.com/FabricMC/fabric-loader/issues/783
-configurations {
-	modRuntimeOnly.exclude group: 'net.fabricmc', module: 'fabric-loader'
 }
 
 dependencies {
+	def processDependency = { dep ->
+		// https://github.com/FabricMC/fabric-loader/issues/783
+		if (dep instanceof ModuleDependency) {
+			if (!(dep.group == 'net.fabricmc' && dep.name == 'fabric-loader')) {
+				dep.exclude group: 'net.fabricmc', module: 'fabric-loader'
+			}
+		}
+		return dep
+	}
+	def autoImplementation = { Object... args -> processDependency(unobfuscated ? implementation(*args) : modImplementation(*args)) }
+	def autoRuntimeOnly = { Object... args -> processDependency(unobfuscated ? runtimeOnly(*args) : modRuntimeOnly(*args)) }
+	def autoCompileOnly = { Object... args -> processDependency(unobfuscated ? compileOnly(*args) : modCompileOnly(*args)) }
+
 	// loom
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	if (!unobfuscated) {
+		mappings loom.layered() {
+			officialMojangMappings()
+			if (project.parchment_version.size() > 0) {
+				parchment("org.parchmentmc.data:parchment-${project.minecraft_version}:${project.parchment_version}@zip")
+			}
+		}
+	}
+	autoImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// runtime mods
 	if (mcVersion < 11904) {
-		modRuntimeOnly(mcVersion < 11900 ? "com.github.astei:lazydfu:0.1.2" : "com.github.Fallen-Breath:lazydfu:a7cfc44c0c")
+        autoRuntimeOnly(mcVersion < 11900 ? "com.github.astei:lazydfu:0.1.2" : "com.github.Fallen-Breath:lazydfu:a7cfc44c0c")
 	}
-	modRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
+    autoRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
 
 	// target mods
-	modImplementation fabricApi.module("fabric-api-base", project.fabric_api_version)
-	modImplementation fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)
+    autoImplementation fabricApi.module("fabric-api-base", project.fabric_api_version)
+    autoImplementation fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)
 
 	// dependencies
-	include(modImplementation("me.fallenbreath:conditional-mixin-fabric:${project.conditionalmixin_version}"))
+	include(autoImplementation("me.fallenbreath:conditional-mixin-fabric:${project.conditionalmixin_version}"))
 }
 
 String MIXIN_CONFIG_PATH = 'vianifixes.mixins.json'
 String LANG_DIR = 'assets/vianifixes/lang'
 JavaVersion JAVA_COMPATIBILITY
-if (mcVersion >= 12005) {
+if (mcVersion >= 260000) {
+	JAVA_COMPATIBILITY = JavaVersion.VERSION_25
+} else if (mcVersion >= 12005) {
 	JAVA_COMPATIBILITY = JavaVersion.VERSION_21
 } else if (mcVersion >= 11800) {
 	JAVA_COMPATIBILITY = JavaVersion.VERSION_17
@@ -63,7 +87,7 @@ loom {
 		vmArgs commonVmArgs
 	}
 	runs {
-        def auditVmArgs = [*commonVmArgs, '-DmixinAuditor.audit=true']
+		def auditVmArgs = [*commonVmArgs, '-DmixinAuditor.audit=true']
 		serverMixinAudit {
 			server()
 			vmArgs auditVmArgs
@@ -87,24 +111,26 @@ if (System.getenv("BUILD_RELEASE") != "true") {
 	modVersionSuffix += buildNumber != null ? ('+build.' + buildNumber) : '-SNAPSHOT'
 	artifactVersionSuffix = '-SNAPSHOT'  // A non-release artifact is always a SNAPSHOT artifact
 }
-String finalModVersion = project.mod_version + modVersionSuffix
+String fullModVersion = project.mod_version + modVersionSuffix
 String fullProjectVersion, fullArtifactVersion
 
 // Example version values:
-//   project.mod_version   1.0.3                      (the base mod version)
-//   finalModVersion       1.0.3+build.88             (the actual mod version to use in the mod)
-//   fullProjectVersion    mc1.15.2-v1.0.3+build.88   (in build output jar name)
-//   fullArtifactVersion   1.0.3-mc1.15.2-SNAPSHOT    (maven artifact version)
+//   project.mod_version     1.0.3                      (the base mod version)
+//   modVersionSuffix        +build.88                  (use github action build number if possible)
+//   artifactVersionSuffix   -SNAPSHOT
+//   fullModVersion          1.0.3+build.88             (the actual mod version to use in the mod)
+//   fullProjectVersion      v1.0.3-mc1.15.2+build.88   (in build output jar name)
+//   fullArtifactVersion     1.0.3-mc1.15.2-SNAPSHOT    (maven artifact version)
 
 group = project.maven_group
 if (System.getenv("JITPACK") == "true") {
 	// move mc version into archivesBaseName, so jitpack will be able to organize archives from multiple subprojects correctly
 	base.archivesName = project.archives_base_name + '-mc' + project.minecraft_version
-	fullProjectVersion = 'v' + finalModVersion
+	fullProjectVersion = 'v' + project.mod_version + modVersionSuffix
 	fullArtifactVersion = artifactVersion + artifactVersionSuffix
 } else {
 	base.archivesName = project.archives_base_name
-	fullProjectVersion = 'mc' + project.minecraft_version + '-v' + finalModVersion
+	fullProjectVersion = 'v' + project.mod_version + '-mc' + project.minecraft_version + modVersionSuffix
 	fullArtifactVersion = artifactVersion + '-mc' + project.minecraft_version + artifactVersionSuffix
 }
 version = fullProjectVersion
@@ -112,19 +138,16 @@ version = fullProjectVersion
 // See https://youtrack.jetbrains.com/issue/IDEA-296490
 // if IDEA complains about "Cannot resolve resource filtering of MatchingCopyAction" and you want to know why
 processResources {
-	inputs.property "id", project.mod_id
-	inputs.property "name", project.mod_name
-	inputs.property "version", finalModVersion
-	inputs.property "minecraft_dependency", project.minecraft_dependency
+	def modProperties = [
+			"id"                  : project.mod_id,
+			"name"                : project.mod_name,
+			"version"             : fullModVersion,
+			"minecraft_dependency": project.minecraft_dependency,
+	]
+	inputs.properties(modProperties)
 
 	filesMatching("fabric.mod.json") {
-		def valueMap = [
-				"id": project.mod_id,
-				"name": project.mod_name,
-				"version": finalModVersion,
-				"minecraft_dependency": project.minecraft_dependency,
-		]
-		expand valueMap
+		expand modProperties
 	}
 
 	filesMatching(MIXIN_CONFIG_PATH) {
@@ -161,8 +184,9 @@ java {
 }
 
 jar {
+	inputs.property "archives_base_name", project.archives_base_name
 	from(rootProject.file('LICENSE')) {
-		rename { "${it}_${project.archives_base_name}" }
+		rename { "${it}_${inputs.properties.archives_base_name}" }
 	}
 }
 
@@ -206,8 +230,8 @@ publishing {
 	publications {
 		mavenJava(MavenPublication) {
 			from components.java
-            artifactId = base.archivesName.get()
-            version = fullArtifactVersion
+			artifactId = base.archivesName.get()
+			version = fullArtifactVersion
 		}
 	}
 
