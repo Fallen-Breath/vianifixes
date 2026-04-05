@@ -26,7 +26,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import me.fallenbreath.conditionalmixin.api.annotation.Condition;
 import me.fallenbreath.conditionalmixin.api.annotation.Restriction;
 import net.fabricmc.fabric.impl.networking.server.ServerConfigurationNetworkAddon;
-import net.minecraft.server.network.ServerConfigurationNetworkHandler;
+import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -58,12 +58,12 @@ public abstract class ServerConfigurationNetworkAddonMixin
 			},
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/server/network/ServerConfigurationNetworkHandler;sendConfigurations()V",
+					target = "Lnet/minecraft/server/network/ServerConfigurationPacketListenerImpl;startConfiguration()V",
 					remap = true
 			),
 			remap = false
 	)
-	private void skipTheCallCuzItHasAlreadyBeenDone(ServerConfigurationNetworkHandler instance, Operation<Void> original)
+	private void skipTheCallCuzItHasAlreadyBeenDone(ServerConfigurationPacketListenerImpl instance, Operation<Void> original)
 	{
 	}
 }
