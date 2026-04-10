@@ -1,14 +1,15 @@
 plugins {
 	id 'maven-publish'
 	id 'com.github.hierynomus.license' version '0.16.1' apply false
-	id 'fabric-loom' version '1.10-SNAPSHOT' apply false
+	id 'net.fabricmc.fabric-loom' version '1.15-SNAPSHOT' apply false
+	id 'net.fabricmc.fabric-loom-remap' version '1.15-SNAPSHOT' apply false
 
 	// https://github.com/ReplayMod/preprocessor
 	// https://github.com/Fallen-Breath/preprocessor
-	id 'com.replaymod.preprocess' version '0a04a5668b'
+	id 'com.replaymod.preprocess' version 'c5abb4fb12'
 
 	// https://github.com/Fallen-Breath/yamlang
-	id 'me.fallenbreath.yamlang' version '1.4.1' apply false
+	id 'me.fallenbreath.yamlang' version '1.5.0' apply false
 }
 
 preprocess {
@@ -18,12 +19,19 @@ preprocess {
 	def mc1204 = createNode('1.20.4', 1_20_04, '')
 	def mc1206 = createNode('1.20.6', 1_20_06, '')
 	def mc1211 = createNode('1.21.1', 1_21_01, '')
-    def mc1216 = createNode('1.21.6', 1_21_06, '')
+	def mc12111 = createNode('1.21.11', 1_21_11, '')
+    def mc260101 = createNode('26.1.1', 26_01_01, '')
 
 	mc1202.link(mc1204, null)
 	mc1204.link(mc1206, null)
 	mc1206.link(mc1211, null)
-	mc1211.link(mc1216, null)
+	mc1211.link(mc12111, null)
+	mc12111.link(mc260101, null)
+
+	// See https://github.com/Fallen-Breath/fabric-mod-template/blob/1d72d77a1c5ce0bf060c2501270298a12adab679/build.gradle#L55-L63
+	for (final def node in getNodes()) {
+		findProject(node.project).ext.mcVersion = node.mcVersion
+	}
 }
 
 tasks.register('buildAndGather') {
